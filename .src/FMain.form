@@ -6,6 +6,7 @@
   Padding = 4
   { HSplit1 HSplit
     MoveScaled(2,1,111,90)
+    Border = False
     { TabStrip1 TabStrip
       MoveScaled(1,2,49,88)
       Expand = True
@@ -42,7 +43,7 @@
         MoveScaled(0,23,43,2)
       }
       { HBox12 HBox
-        MoveScaled(1,26,48,3.75)
+        MoveScaled(1,26,48,3.7143)
         Spacing = True
         Padding = 4
         { Label9 Label
@@ -173,6 +174,7 @@
           Border = Border.Plain
           { PictureBox3 PictureBox
             MoveScaled(0,0,5,5)
+            Picture = Picture["imagemagick.gif"]
             Alignment = Align.BottomLeft
           }
           { Label12 Label
@@ -183,7 +185,7 @@
           }
         }
         { HBox24 HBox
-          MoveScaled(1,9,48,3.75)
+          MoveScaled(1,9,48,3.7143)
           Spacing = True
           Padding = 4
           { despeckle CheckBox CheckboxesEffects
@@ -195,7 +197,7 @@
           }
         }
         { HBox19 HBox
-          MoveScaled(1,13,48,3.75)
+          MoveScaled(1,13,48,3.7143)
           ToolTip = ("straighten an image. A threshold of 40% works for most images.")
           Spacing = True
           Padding = 4
@@ -217,7 +219,7 @@
           }
         }
         { HBox15 HBox
-          MoveScaled(1,17,48,3.75)
+          MoveScaled(1,17,48,3.7143)
           ToolTip = ("Apply Paeth image rotation (using shear operations) to the image.")
           Spacing = True
           Padding = 4
@@ -236,7 +238,7 @@
           MoveScaled(11,22,31,1)
         }
         { HBox16 HBox
-          MoveScaled(1,25,48,3.75)
+          MoveScaled(1,25,48,3.7143)
           ToolTip = ("Automagically adjust gamma level of image.")
           Spacing = True
           Padding = 4
@@ -248,7 +250,7 @@
           }
         }
         { HBox22 HBox
-          MoveScaled(1,29,48,3.75)
+          MoveScaled(1,29,48,3.7143)
           ToolTip = ("Automagically adjust color levels of image.")
           Spacing = True
           Padding = 4
@@ -260,7 +262,7 @@
           }
         }
         { HBox17 HBox
-          MoveScaled(1,33,48,3.75)
+          MoveScaled(1,33,48,3.7143)
           ToolTip = ("Force to black all pixels below the threshold while leaving all pixels at or above the threshold unchanged.")
           Spacing = True
           Padding = 4
@@ -282,8 +284,8 @@
           }
         }
         { HBox18 HBox
-          MoveScaled(1,37,48,3.75)
-          ToolTip = ("Force all pixels above the threshold into Black")
+          MoveScaled(1,37,48,3.7143)
+          ToolTip = ("Force all pixels above the threshold into White")
           Spacing = True
           Padding = 4
           { whitethreshold CheckBox CheckboxesEffects
@@ -304,7 +306,7 @@
           }
         }
         { HBox25 HBox
-          MoveScaled(1,42,48,3.75)
+          MoveScaled(1,42,48,3.7143)
           ToolTip = ("Increase the contrast in an image by stretching the range of intensity values.")
           Spacing = True
           Padding = 4
@@ -328,7 +330,7 @@
           }
         }
         { HBox21 HBox
-          MoveScaled(1,47,48,3.75)
+          MoveScaled(1,47,48,3.7143)
           ToolTip = ("\treduce the image to a limited number of color levels")
           Spacing = True
           Padding = 4
@@ -357,7 +359,7 @@
           MoveScaled(9,51,35,1)
         }
         { HBox23 HBox
-          MoveScaled(1,53,48,3.75)
+          MoveScaled(1,53,48,3.7143)
           ToolTip = ("<0 = reduce image noise and reduce detail levels.\n>0 = increase detail levels and image noise")
           Spacing = True
           Padding = 4
@@ -386,7 +388,7 @@
           MoveScaled(4,57,43,1)
         }
         { HBox20 HBox
-          MoveScaled(1,59,48,3.375)
+          MoveScaled(1,59,48,3.4286)
           Spacing = True
           Padding = 4
           { CheckBoxF5 CheckBox CheckboxesEffects
@@ -400,7 +402,7 @@
           }
         }
         { HBox40 HBox
-          MoveScaled(1,64,48,3.375)
+          MoveScaled(1,64,48,3.4286)
           Spacing = True
           Padding = 4
           { CheckBoxF19 CheckBox CheckboxesEffects
@@ -414,7 +416,7 @@
           }
         }
         { HBox41 HBox
-          MoveScaled(1,68,48,3.375)
+          MoveScaled(1,68,48,3.4286)
           Spacing = True
           Padding = 4
           { CheckBoxF20 CheckBox CheckboxesEffects
@@ -454,22 +456,18 @@
       Index = 0
     }
     { VBox2 VBox
-      MoveScaled(50,2,61,88)
+      MoveScaled(51,0,61,89)
       Expand = True
-      Spacing = True
-      Padding = 3
       { OuterBox Panel
         MoveScaled(1,13,54,63)
-        Background = &H000000&
         Expand = True
         Arrangement = Arrange.Vertical
         { PictureBox1 PictureBox
           MoveScaled(6,15,37,35)
-          Background = Color.LightForeground
           Tracking = True
           Expand = True
           Ignore = True
-          Picture = Picture["black.png"]
+          Picture = Picture["whitepage.png"]
           Stretch = True
         }
         { CropArea Panel
@@ -533,8 +531,11 @@
           }
         }
       }
+      { Separator1 Separator
+        MoveScaled(1,76,56,2)
+      }
       { BottomBox HBox
-        MoveScaled(1,77,54,4)
+        MoveScaled(2,79,54,4)
         Visible = False
         Spacing = True
         Padding = 4
@@ -559,7 +560,8 @@
         }
       }
       { HBox2 HBox
-        MoveScaled(1,83,54,4)
+        MoveScaled(2,84,54,4)
+        AutoResize = True
         Spacing = True
         Padding = 4
         { VBox9 VBox
@@ -570,26 +572,26 @@
           MoveScaled(0,0,11,4)
           AutoResize = True
           Text = ("Preview")
-          Picture = Picture["icon:/medium/find"]
+          Picture = Picture["icon:/small/find"]
         }
         { btnSaveNow Button
           MoveScaled(11,0,14,4)
           Enabled = False
           AutoResize = True
           Text = ("Save")
-          Picture = Picture["icon:/medium/save-as"]
+          Picture = Picture["icon:/small/save-as"]
         }
         { btnScan Button
           MoveScaled(25,0,17,4)
           AutoResize = True
           Text = ("Scan and save")
-          Picture = Picture["icon:/medium/insert-image"]
+          Picture = Picture["icon:/small/insert-image"]
         }
         { btnScanMulti Button
-          MoveScaled(42,0,14,4)
+          MoveScaled(37,0,14,4)
           AutoResize = True
           Text = ("Multipage")
-          Picture = Picture["icon:/medium/copy"]
+          Picture = Picture["icon:/small/copy"]
         }
       }
       { BigLabel Label

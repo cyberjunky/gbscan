@@ -5,7 +5,7 @@ Public iWindowX As Integer
 Public iWindowY As Integer
 Public iWindowHeight As Integer
 Public iWindowWidth As Integer
-Public sProgramVersion As String = "0.01"
+Public sProgramVersion As String = "0.02"
 Public sScanners As String
 Public sPreviewFile As String = "/dev/shm/out.tiff"
 Public sScanFile As String = "/dev/shm/out_s.tiff"
@@ -115,7 +115,6 @@ Public Sub SaveEnabledSettings()
           Else
             sOptionName = Left(oControl.Tag, Len(oControl.Tag) - 1)
           Endif
-          ' sOptionName & " : value = " & oControl.Next.Text
           If oControl.Value = True Then
             Try sValue = oControl.Next.Text
             If Not Error Then SetConfigValue("Options/" & sOptionName, sValue)
@@ -306,10 +305,63 @@ Public Function FillOptions(sScanner As String) As String
         sDescription &= Trim(sLine) & "\n"
       Endif
     Endif
-  Next ' Line
+  Next ' line
 
   If (sOption <> "") And (sDescription <> "") Then MakeObject(sOption, sDescription)
   bOptionsLoaded = True
+  UpdateCheckBoxes(vboxDefaults)
+  UpdateCheckBoxes(vboxSettings)
+  Try CleanDefaults()
+
+End
+
+Public Sub CleanDefaults()
+
+  ' remove unuseful labels and separators from the favourite tab
+  Dim oMyobj As Object
+
+  For Each oMyobj In vboxDefaults.Children
+    If oMyobj Is Separator Then
+      If oMyobj.Next Is Hbox Then
+        If oMyobj.Next.Next Is Separator Then
+          If (oMyobj.Next.Next.Next Is Separator) Or (oMyobj.Next.Next.Next = Null) Then
+            Try oMyobj.Next.Next.Hide
+            Try oMyobj.Next.Hide
+            Try oMyobj.Hide
+            Try oMyobj.Next.Next.Delete
+            Try oMyobj.Next.Delete
+            Try oMyobj.Delete
+          Endif
+        Endif
+      Endif
+    Endif
+  Next ' oMyobj
+
+End
+
+Public Sub UpdateCheckBoxes(oParent As Object)
+
+  Dim oMyobj As Object
+  Dim iMaxw As Integer
+  Dim iPadding As Integer = 10
+
+  For Each oMyobj In FMain.Controls
+    If (oMyobj.Name Like "mycheck_*") Or (oMyobj.name Like "CheckBoxF*") Then
+      If oMyobj.Parent.Parent = oParent Then
+        Try oMyobj.Next.Enabled = oMyobj.value
+        Try oMyobj.Next.Next.Enabled = oMyobj.Value
+        If (oMyobj.W > iMaxw) Then iMaxw = oMyobj.W + iPadding
+      Endif
+    Endif
+  Next
+  For Each oMyobj In FMain.Controls
+   If oMyobj.Name Like "mycheck_*" Then
+     If oMyobj.Parent.Parent = oParent Then
+       oMyobj.Autoresize = False
+       oMyobj.W = iMaxw
+     Endif
+   Endif
+  Next
 
 End
 
@@ -373,16 +425,13 @@ Public Sub MakeLabel(sName As String)
 
 End
 
-Public Sub MakeCombo(option As String, description As String)
+Public Sub MakeCombo(sOption As String, sDescription As String)
 
-  Dim sSavedValue, sName As String
-
-  Dim suboptions As String[]
-  Dim suboption, defaultvalue As String
-  Dim checkname As String
+  Dim sSavedValue, sName, sSubOption, sDefaultValue, sCheckName As String
+  Dim aSubOptions As String[]
 
   ' construct name
-  sName = Mid$(Split(option, " ", "", True)[0], 3)
+  sName = Mid$(Split(sOption, " ", "", True)[0], 3)
 
   ' check if option was saved
   sSavedValue = GetConfigValue("Options/" & sName)
@@ -395,34 +444,34 @@ Public Sub MakeCombo(option As String, description As String)
   SetParent(oParent)
 
   oCheckBox = New CheckBox(oParent) As "mycheck"
-  oCheckBox.tag = sName
-  checkname = "mycheck_" & sName
-  oCheckBox.name = checkname
-  oCheckBox.value = 0 ' Not (option Like "* \\[inactive\\]")
-  oCheckBox.text = sName
+  oCheckBox.Tag = sName
+  sCheckName = "mycheck_" & sName
+  oCheckBox.Name = sCheckName
+  oCheckBox.Value = 0 ' Not (option Like "* \\[inactive\\]")
+  oCheckBox.Text = sName
   oCheckBox.AutoResize = True
 
   oComboBox = New Combobox(oParent)
-  oComboBox.expand = True
-  oComboBox.readonly = True
+  oComboBox.Expand = True
+  oComboBox.Readonly = True
 
-  suboptions = Split(option, "|", "", True)
-  For Each suboption In suboptions
-    If suboption Like "--*" Then
-      suboption = Trim(Mid(suboption, 3 + Len(oCheckBox.tag)))
-    Else If suboption Like "* \\[*\\]" Then
-      defaultvalue = Split(Split(suboption, "[", "", True)[1], "]", "", True)[0]
-      suboption = Trim(Split(suboption, "[", "", True)[0])
+  aSubOptions = Split(sOption, "|", "", True)
+  For Each sSubOption In aSubOptions
+    If sSubOption Like "--*" Then
+      sSubOption = Trim(Mid(sSubOption, 3 + Len(oCheckBox.Tag)))
+    Else If sSubOption Like "* \\[*\\]" Then
+      sDefaultValue = Split(Split(sSubOption, "[", "", True)[1], "]", "", True)[0]
+      sSubOption = Trim(Split(sSubOption, "[", "", True)[0])
     Endif
-    ' DEBUG oCheckBox.tag & " " & suboption
-    oComboBox.Add(suboption)
-  Next ' suboption
+    ' Debug oCheckBox.tag & " " & suboption
+    oComboBox.Add(sSubOption)
+  Next ' sSubOption
 
-  If (option Like "*\\[inactive\\]") Then ' inactive option
+  If (sOption Like "*\\[inactive\\]") Then ' inactive option
     oCheckBox.Value = False
     oCheckBox.Enabled = False
     oLabel = New Label(oParent)
-    oLabel.Text = "Disabled"
+    oLabel.Text = ("Disabled")
     oLabel.Font.bold = True
     oLabel.Foreground = Color.Red
     oLabel.Autoresize = True
@@ -431,23 +480,20 @@ Public Sub MakeCombo(option As String, description As String)
       oCheckBox.Value = True
       oComboBox.Text = sSavedValue
     Else
-      If defaultvalue <> "inactive" Then oComboBox.text = defaultvalue
+      If sDefaultValue <> "inactive" Then oComboBox.text = sDefaultValue
     Endif
   Endif
-  oParent.tooltip = Trim(description)
+  oParent.Tooltip = Trim(sDescription)
 
 End
 
-Public Sub MakeYesNo(option As String, description As String)
+Public Sub MakeYesNo(sOption As String, sDescription As String)
 
-  Dim sSavedValue, sName As String
-
-  Dim suboptions As String[]
-  Dim suboption, defaultvalue As String
-  Dim checkname As String
+  Dim sSavedValue, sName, sSubOption, sDefaultValue, sCheckName As String
+  Dim aSubOptions As String[]
 
   ' construct name
-  sName = Mid$(Split(option, "[", "", True)[0], 3) & "="
+  sName = Mid$(Split(sOption, "[", "", True)[0], 3) & "="
 
   ' check if option was saved (strip '=' from right)
   sSavedValue = GetConfigValue("Options/" & Left(sName, Len(sName) - 1))
@@ -460,57 +506,55 @@ Public Sub MakeYesNo(option As String, description As String)
   SetParent(oParent)
 
   oCheckBox = New CheckBox(oParent) As "mycheck"
-  oCheckBox.tag = sName
-  checkname = "mycheck_" & sName
-  oCheckBox.name = checkname
-  oCheckBox.value = 0 ' Not (option Like "* \\[inactive\\]")
-  oCheckBox.text = sName
+  oCheckBox.Tag = sName
+  sCheckName = "mycheck_" & sName
+  oCheckBox.Name = sCheckName
+  oCheckBox.Value = 0 ' Not (option Like "* \\[inactive\\]")
+  oCheckBox.Text = sName
   oCheckBox.AutoResize = True
 
   oComboBox = New Combobox(oParent)
-  oComboBox.expand = True
-  oComboBox.readonly = True
+  oComboBox.Expand = True
+  oComboBox.Readonly = True
 
-  suboptions = Split(option, "|", "", True)
-  For Each suboption In suboptions
-    If suboption Like "--*(*" Then
-      suboption = Split(suboption, "(")[1]
-       Else If suboption Like "*)\\] \\[*\\]" Then
-         defaultvalue = Split(Split(suboption, "[", "", True)[1], "]", "", True)[0]
-          suboption = Trim(Split(suboption, ")", "", True)[0])
+  aSubOptions = Split(sOption, "|", "", True)
+  For Each sSubOption In aSubOptions
+    If sSubOption Like "--*(*" Then
+      sSubOption = Split(sSubOption, "(")[1]
+    Else If sSubOption Like "*)\\] \\[*\\]" Then
+      sDefaultValue = Split(Split(sSubOption, "[", "", True)[1], "]", "", True)[0]
+      sSubOption = Trim(Split(sSubOption, ")", "", True)[0])
     Endif
-    oComboBox.Add(suboption)
+    oComboBox.Add(sSubOption)
   Next ' suboption
 
   If sSavedValue Then ' set it as selected
     oCheckBox.Value = True
     oComboBox.Text = sSavedValue
   Else
-    If defaultvalue <> "inactive" Then oComboBox.text = defaultvalue
+    If sDefaultValue <> "inactive" Then oComboBox.Text = sDefaultValue
   Endif
-  oParent.tooltip = Trim(description)
+  oParent.Tooltip = Trim(sDescription)
 
-  If (option Like "*\\[inactive\\]") Then
+  If (sOption Like "*\\[inactive\\]") Then
     oLabel = New Label(oParent)
-    oLabel.text = "*"
-    oLabel.font.bold = True
+    oLabel.Text = "*"
+    oLabel.Font.Bold = True
     oLabel.Foreground = Color.Red
-    oLabel.autoresize = True
+    oLabel.Autoresize = True
   Endif
 
 End
 
-Public Sub MakeRange(option As String, description As String)
+Public Sub MakeRange(sOption As String, sDescription As String)
 
-  Dim sSavedValue, sName As String
-
-  Dim checkname, suboption, defaultvalue, unit, MinValue, MaxValue, Mystep As String
+  Dim sSavedValue, sName, sCheckName, sSubOption, sDefaultValue, unit, MinValue, MaxValue, Mystep As String
   Dim i As Integer
 
   mystep = 1
 
   ' construct name
-  sName = Mid$(Split(option, " ", "", True)[0], 3)
+  sName = Mid$(Split(sOption, " ", "", True)[0], 3)
 
   ' check if option was saved
   sSavedValue = GetConfigValue("Options/" & sName)
@@ -523,36 +567,36 @@ Public Sub MakeRange(option As String, description As String)
   SetParent(oParent)
 
   oCheckBox = New CheckBox(oParent) As "mycheck"
-  oCheckBox.tag = sName
-  checkname = "mycheck_" & sName
-  oCheckBox.name = checkname
-  oCheckBox.value = 0 ' Not (option Like "* \\[inactive\\]")
-  oCheckBox.text = sName
+  oCheckBox.Tag = sName
+  sCheckName = "mycheck_" & sName
+  oCheckBox.Name = sCheckName
+  oCheckBox.Value = 0 ' Not (option Like "* \\[inactive\\]")
+  oCheckBox.Text = sName
   oCheckBox.AutoResize = True
 
   ' Get min and max values
-  For Each suboption In Split(option, " ", "", True)
-    If suboption Like "*..*" Then
-      minvalue = Split(suboption, ".", "", True)[0]
-      maxvalue = Split(suboption, ".", "", True)[1]
+  For Each sSubOption In Split(sOption, " ", "", True)
+    If sSubOption Like "*..*" Then
+      minvalue = Split(sSubOption, ".", "", True)[0]
+      maxvalue = Split(sSubOption, ".", "", True)[1]
       ' 1..1200dpi -> 1200
       If (maxvalue Like "*[a-z]*") Or (maxvalue Like "*[A-Z]*") Then
         unit = Split(maxvalue, "0,1,2,3,4,5,6,7,8,9,0", "", True)[0]
         maxvalue = Replace(MaxValue, unit, "")
         Try maxvalue = Scan(maxvalue, "*[^0-9]*")[0] ' 192, -> 192
       Endif
-     Else If suboption Like "\\[*\\]" Then
-         defaultvalue = Split(suboption, "[]", "", True)[0]
+      Else If sSubOption Like "\\[*\\]" Then
+        sDefaultValue = Split(sSubOption, "[]", "", True)[0]
     Endif
   Next
 
-  ' Get step
-  i = InStr(option, "steps of")
-  If i <> 0 Then MyStep = Split(Mid(option, i + 9), ")")[0]
+  ' get step
+  i = InStr(sOption, "steps of")
+  If i <> 0 Then MyStep = Split(Mid(sOption, i + 9), ")")[0]
 
   oComboBox = New Combobox(oParent)
-  oComboBox.expand = True
-  oComboBox.readonly = True
+  oComboBox.Expand = True
+  oComboBox.Readonly = True
 
   Try maxvalue = Split(maxvalue, ".,%")[0]
   For i = CInt(minvalue) To CInt(maxvalue) Step Mystep
@@ -563,52 +607,60 @@ Public Sub MakeRange(option As String, description As String)
     oCheckBox.Value = True
     oComboBox.Text = sSavedValue
   Else
-    If defaultvalue <> "inactive" Then oComboBox.text = defaultvalue
+    If sDefaultValue <> "inactive" Then oComboBox.text = sDefaultValue
   Endif
-  oParent.tooltip = Trim(description)
+  oParent.tooltip = Trim(sDescription)
 
-  If (option Like "*\\[inactive\\]") Then
+  If (sOption Like "*\\[inactive\\]") Then
     oLabel = New Label(oParent)
-    oLabel.text = "*"
-    oLabel.font.bold = True
+    oLabel.Text = "*"
+    oLabel.Font.Bold = True
     oLabel.Foreground = Color.Red
-    oLabel.autoresize = True
+    oLabel.Autoresize = True
   Endif
 
 End
 
 Public Sub MakeCheck(option As String, description As String)
 
-  Dim checkname As String
+  Dim sCheckName, sSavedValue, sName As String
 
-  oParent = New HBox(vboxDefaults)
+  ' construct name
+  sName = Mid$(Split(option, " ", "", True)[0], 3)
+
+  ' check if option was saved
+  sSavedValue = GetConfigValue("Options/" & sName)
+
+  If sSavedValue Then ' create on default tab
+    oParent = New HBox(vboxDefaults)
+  Else ' create on settings tab
+    oParent = New HBox(vboxSettings)
+  Endif
+
   SetParent(oParent)
 
   oCheckBox = New CheckBox(oParent) As "mycheck"
-  oCheckBox.tag = Mid$(option, 3)
-  checkname = "mycheck_" & oCheckBox.tag
-  oCheckBox.name = checkname
-  oCheckBox.value = 0
-  oCheckBox.text = oCheckBox.tag
+  oCheckBox.Tag = Mid$(option, 3)
+  sCheckname = "mycheck_" & oCheckBox.tag
+  oCheckBox.Name = sCheckname
+  oCheckBox.Value = 0
+  oCheckBox.Text = oCheckBox.tag
   oCheckBox.AutoResize = True
-  oParent.tooltip = Trim(description)
+  oParent.Tooltip = Trim(description)
 
   If (option Like "*\\[inactive\\]") Then
     oLabel = New Label(oParent)
-    oLabel.text = "*"
-    oLabel.font.bold = True
+    oLabel.Text = "*"
+    oLabel.Font.Bold = True
     oLabel.Foreground = Color.Red
-    oLabel.autoresize = True
+    oLabel.Autoresize = True
   Endif
 
 End
 
 Public Sub MakeInt(option As String, description As String)
 
-  Dim sSavedValue, sName As String
-
-  Dim defaultvalue As String
-  Dim checkname As String
+  Dim sSavedValue, sName, sDefaultValue, sCheckName As String
 
   ' construct name
   sName = Split(Mid$(option, 3), "<")[0]
@@ -624,77 +676,97 @@ Public Sub MakeInt(option As String, description As String)
   SetParent(oParent)
 
   oCheckBox = New CheckBox(oParent) As "mycheck"
-  oCheckBox.tag = sName
-  checkname = "mycheck_" & sName
-  oCheckBox.name = checkname
-  oCheckBox.text = sName
+  oCheckBox.Tag = sName
+  sCheckname = "mycheck_" & sName
+  oCheckBox.Name = sCheckName
+  oCheckBox.Text = sName
   oCheckBox.AutoResize = True
-  oParent.tooltip = Trim(description)
+  oParent.Tooltip = Trim(description)
   oSpinBox = New SpinBox(oParent)
   oSpinBox.MinValue = -65535
   oSpinBox.MaxValue = 65535
-  oSpinBox.value = 0
-  oSpinBox.expand = True
+  oSpinBox.Value = 0
+  oSpinBox.Expand = True
 
-  defaultvalue = Split(Split(option, "[")[1], "]")[0]
+  sDefaultvalue = Split(Split(option, "[")[1], "]")[0]
 
   If sSavedValue Then ' set it as selected
     oCheckBox.Value = True
     oComboBox.Text = sSavedValue
   Else
-    If defaultvalue <> "inactive" Then oComboBox.text = defaultvalue
+    If sDefaultValue <> "inactive" Then oComboBox.text = sDefaultValue
   Endif
-  oCheckBox.value = Not (defaultvalue = "inactive")
+  oCheckBox.Value = Not (sDefaultValue = "inactive")
 
   If (option Like "*\\[inactive\\]") Then
     oLabel = New Label(oParent)
-    oLabel.text = "*"
-    oLabel.font.bold = True
+    oLabel.Text = "*"
+    oLabel.Font.Bold = True
     oLabel.Foreground = Color.Red
-    oLabel.autoresize = True
+    oLabel.Autoresize = True
   Endif
 
 End
 
 Public Sub MakeFloat(option As String, description As String)
 
-  Dim checkname, defaultvalue As String
-  Dim mylabel As Label
+  Dim sCheckName, sDefaultValue, sMylabel, sSavedValue, sName As String
 
-  oParent = New HBox(vboxDefaults)
+  ' construct name
+  sName = Mid$(Split(option, " ", "", True)[0], 3)
+  ' check if option was saved
+  sSavedValue = GetConfigValue("Options/" & sName)
+
+  If sSavedValue Then ' create on default tab
+    oParent = New HBox(vboxDefaults)
+  Else ' create on settings tab
+    oParent = New HBox(vboxSettings)
+  Endif
+
   SetParent(oParent)
 
   oCheckBox = New CheckBox(oParent) As "mycheck"
-  oCheckBox.tag = Split(Mid$(option, 3), "<")[0]
-  checkname = "mycheck_" & oCheckBox.tag
-  oCheckBox.name = checkname
-  oCheckBox.text = oCheckBox.tag
+  oCheckBox.Tag = Split(Mid$(option, 3), "<")[0]
+  sCheckname = "mycheck_" & oCheckBox.Tag
+  oCheckBox.Name = sCheckName
+  oCheckBox.Text = oCheckBox.tag
   oCheckBox.AutoResize = True
-  oParent.tooltip = Trim(description)
+  oParent.Tooltip = Trim(description)
   oTextBox = New Textbox(oParent)
-  oTextBox.expand = True
-  defaultvalue = Split(Split(option, "[")[1], "]")[0]
-  If defaultvalue <> "inactive" Then oTextBox.text = defaultvalue
-  oCheckBox.value = Not (defaultvalue = "inactive")
-  mylabel = New Label(oParent)
-  mylabel.text = "<float>"
-  mylabel.autoresize = True
+  oTextBox.Expand = True
+  sDefaultvalue = Split(Split(option, "[")[1], "]")[0]
+  If sDefaultvalue <> "inactive" Then oTextBox.text = sDefaultValue
+  oCheckBox.Value = Not (sDefaultValue = "inactive")
+  sMylabel = New Label(oParent)
+  sMylabel.Text = "<float>"
+  sMylabel.Autoresize = True
 
   If (option Like "*\\[inactive\\]") Then
     oLabel = New Label(oParent)
-    oLabel.text = "*"
-    oLabel.font.bold = True
+    oLabel.Text = "*"
+    oLabel.Font.Bold = True
     oLabel.Foreground = Color.Red
-    oLabel.autoresize = True
+    oLabel.Autoresize = True
   Endif
 
 End
 
 Public Sub MakeString(option As String, description As String)
 
-  Dim checkname, defaultvalue As String
+  Dim checkname, defaultvalue, sSavedValue, sName As String
 
-  oParent = New HBox(vboxDefaults)
+  ' construct name
+  sName = Mid$(Split(option, " ", "", True)[0], 3)
+
+  ' check if option was saved
+  sSavedValue = GetConfigValue("Options/" & sName)
+
+  If sSavedValue Then ' create on default tab
+    oParent = New HBox(vboxDefaults)
+  Else ' create on settings tab
+    oParent = New HBox(vboxSettings)
+  Endif
+
   SetParent(oParent)
 
   oCheckBox = New CheckBox(oParent) As "mycheck"
@@ -842,6 +914,7 @@ Public Sub btnPreview_Click()
   If bDebug Then Debug cmdline
 
   PictureBox1.Picture = picture["black.png"]
+  OuterBox.Background = Color.black
   Wait
   hScanProcess = Shell cmdline For Input As "ScanProcess"
 
@@ -875,6 +948,7 @@ Public Sub btnScan_Click()
   cmdline = sScanImageCmd & " -p -d " & scanner & " " & gopts & scanopts & " --format tiff >" & sScanfile
   hScanProcess = Shell cmdline For Input As "ScanProcess"
   PictureBox1.Picture.Clear
+  OuterBox.Background = Color.black
   croparea.Hide
   btnTryFilters.enabled = True
   btnSaveNow.Enabled = True
@@ -935,7 +1009,7 @@ Public Sub ScanProcess_Kill()
 
   If bIsManuallyStopped Then
     bIsManuallyStopped = False
-    Try Message.info("Scanning is cancelled!")
+    Try Message.info(("Scanning is cancelled!"))
     ProgressBar1.Value = 1
     btnCancel.hide
     BottomBox.hide
@@ -953,7 +1027,7 @@ Public Sub ScanProcess_Kill()
       Shell "convert " & Quote(sPreviewFile) & " " & Quote(sPreviewFile) To tmp
       Try PictureBox1.picture = picture.Load(sPreviewFile)
       If Error Then
-        message.error("Unable to load picture!")
+        message.error(("Unable to load picture!"))
         bIsScanning = False
         Return
       Endif
@@ -986,7 +1060,7 @@ Public Sub ScanProcess_Kill()
          Shell "convert " & Quote(sScanfile) & " " & Quote(sScanfile) To tmp
          Try dpi = getdpi(sliderw.value, image.Load(sScanfile).Width)
          If Error Then
-            message.error("Unable to load picture!")
+            message.error(("Unable to load picture!"))
             bIsScanning = False
             Return
          Endif
@@ -1026,7 +1100,7 @@ Public Function ShowSaveDialog(Optional bMulti As Boolean = False) As Boolean
     Dialog.Filter = ["*.pdf", "PDF", "*.png", "PNG", "*.jpg", "JPEG", "*.tiff", "TIFF", "*.bmp", "BMP"]
   Endif
 
-  Dialog.Title = "Choose a directory and specify name to save as"
+  Dialog.Title = (("Choose a directory and specify name to save as"))
   Dialog.AutoExt = True
   Dialog.Path = sSavePath & "/"
   Return Dialog.SaveFile()
@@ -1100,7 +1174,7 @@ Public Sub MagickProcess_kill()
     If Not Error Then picturebox1.picture = hPdfDocument[1].Image.Picture
     Try hPdfDocument.close
   Endif
-  If bIsMultiPage Then BigLabel.text = "This is the page number " & iPages
+  If bIsMultiPage Then BigLabel.text = ("This is the page number ") & iPages
   CorrectAreaAspect()
   BigLabel.hide
   FMain.enabled = True
@@ -1421,7 +1495,7 @@ Public Sub btnScanMulti_Click()
     sMultiPageDestFile = Dialog.path
     sOutputFmt = Lower(File.Ext(sMultiPageDestFile))
     bTiffOrPDF = ((sOutputFmt = "pdf") Or (sOutputFmt = "tiff"))
-    If Not bTiffOrPdf Then Try message.Error("Please select PDF or TIFF format!")
+    If Not bTiffOrPdf Then Try message.Error(("Please select PDF or TIFF format!"))
   Until bTiffOrPDF
 
   iPages = 0
@@ -1430,12 +1504,12 @@ Public Sub btnScanMulti_Click()
   TabStrip1.Enabled = False
   Shell "rm " & "/tmp/gbscan.multipage.* -v"
   FMain.Mouse = Mouse.Wait
-  While Message.Question(("You are creating a new multipage document named:\n " & sMultiPageDestFile & "\n\nPlease place the next page and hit " & ("Scan") & ",\nClick " & ("Finish") & " " & "to save all scanned pages.\n\n" & iPages & " page" & IIf(iPages = 1, " ", "s") & " scanned so far.\n"), ("Scan"), ("Finish")) = 1
+  While Message.Question((("You are creating a new multipage document named") & ":\n " & sMultiPageDestFile & "\n\n" & ("Please place the next page and hit") & " " & ("Scan") & ",\n" & ("Click") & " " & ("Finish") & " " & ("to save all scanned pages.") & "\n\n" & iPages & " " & ("pages") & " " & ("scanned so far.") & "\n"), ("Scan"), ("Finish")) = 1
     Inc iPages
     sDestinationFile = "/tmp/gbscan.multipage." & makedigits(iPages, 5) & ".tiff"
     BigLabel.Y = 0
     BigLabel.X = (VBox2.w Div 2) - (BigLabel.w Div 2)
-    BigLabel.Text = "Scanning page " & iPages
+    BigLabel.Text = ("Scanning page") & " " & iPages
     BigLabel.Show
     Wait 0.2
     btnScan_Click()
@@ -1446,7 +1520,7 @@ Public Sub btnScanMulti_Click()
     While bIsScanning
       BigLabel.Y = 0
       BigLabel.X = (VBox2.w Div 2) - (BigLabel.w Div 2)
-      BigLabel.Text = "Scanning page " & iPages
+      BigLabel.Text = ("Scanning page") & " " & iPages
       BigLabel.Show
       Wait 0.2
     Wend
@@ -1454,7 +1528,7 @@ Public Sub btnScanMulti_Click()
   FMain.Mouse = Mouse.Default
   If iPages > 0 Then
     JoinPages("/tmp/gbscan.multipage.*", sMultiPageDestFile)
-    Select Case Message.Question(("Multipage document saved as:\n" & sMultiPageDestFile), ("Open Folder"), ("Open File"), "OK")
+    Select Case Message.Question((("Multipage document saved as:") & "\n" & sMultiPageDestFile), ("Open Folder"), ("Open File"), "OK")
       Case 1
         Desktop.Open(File.Dir(sMultiPageDestFile))
       Case 2
@@ -1482,46 +1556,46 @@ Public Sub JoinPages(pages As String, multipagefile As String)
   If Error Then
     Shell "convert " & Quote(sScanfile) & " " & Quote(sScanfile) To tmp
     Try dpi = getdpi(sliderw.value, image.Load(sScanfile).Width)
-    If Error Then 
-      message.Error("Unable to load picture")
+    If Error Then
+      message.Error(("Unable to load picture"))
       Return
     Endif
   Endif
-  Shell "convert " & Quote(pages) & "* -compress jpeg -quality " & slQuality.value & " -density " & dpi & " " & Quote(multipagefile) Wait
-  FMain.mouse = mouse.Default
-  BigLabel.text = ("Done.")
+  Shell "convert " & Quote(pages) & "* -compress jpeg -quality " & slQuality.Value & " -density " & dpi & " " & Quote(multipagefile) Wait
+  FMain.Mouse = mouse.Default
+  BigLabel.Text = ("Done.")
 
 End
 
 Public Sub btnTryFilters_Click()
 
-  Label13.text = "Preparing Undo..."
+  Label13.Text = ("Preparing Undo...")
   Wait
-  hImageOriginal = picturebox1.Picture.image
+  hImageOriginal = picturebox1.Picture.Image
   DoEffects(ByRef picturebox1.Picture)
-  btnTryFilters.enabled = False
-  btnUndo.enabled = True
+  btnTryFilters.Enabled = False
+  btnUndo.Enabled = True
 
 End
 
 Public Sub DoEffects(ByRef pic As Picture)
 
   Try Kill sEffectFile
-  Label13.text = "Applying Effects..."
+  Label13.text = ("Applying Effects...")
 
   If bIsPreview Then
     Shell "convert " & Quote(sPreviewFile) & " " & ParseEffects() & " " & Quote(sEffectFile) Wait
   Else
     Shell "convert " & Quote(sScanfile) & " " & ParseEffects() & " " & Quote(sEffectFile) Wait
   Endif
-  Label13.text = "Transferring image..."
+  Label13.text = ("Transferring image...")
   Wait
   Try pic = picture.Load(sEffectFile)
   If Error Then 
-    Try message.Error("Error reloading the picture", "OK")
+    Try message.Error(("Error reloading the picture"), ("OK"))
     btnUndo_Click()
   Endif
-  Label13.text = "Done."
+  Label13.text = ("Done.")
   Wait
 
 End
@@ -1529,8 +1603,8 @@ End
 Public Sub btnUndo_Click()
 
   picturebox1.Picture = hImageOriginal.Picture
-  btnUndo.enabled = False
-  btnTryFilters.enabled = True
+  btnUndo.Enabled = False
+  btnTryFilters.Enabled = True
   btnSaveNow.Enabled = True
   Try Kill sEffectFile
 
@@ -1545,7 +1619,7 @@ End
 Public Sub StopScan()
 
   bIsManuallyStopped = True
-  hScanProcess.kill
+  hScanProcess.Kill
   bIsScanning = False
 
 End

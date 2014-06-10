@@ -2,7 +2,7 @@
 # Compiled with Gambas 3.5.2
 Title=gbScan
 Startup=FMain
-Version=0.0.29
+Version=0.0.30
 Component=gb.image
 Component=gb.qt4
 Component=gb.form
@@ -14,5 +14,7 @@ Component=gb.image.imlib
 Component=gb.pdf
 Component=gb.qt4.ext
 TabSize=2
+Translate=1
+Language=en_US
 KeepDebugInfo=0
 Packager=1
